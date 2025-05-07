@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { CohereClientV2 } from 'cohere-ai';
+	import type { PageProps } from './$types';
 	import type { ChatMessageV2, ChatResponse, ResponseFormatV2 } from 'cohere-ai/api';
+	import { CohereClientV2 } from 'cohere-ai';
 
-	const COHERE_TOKEN = 'zkXusf2XxAI8K9SZpbUo1TKu8OrQI25UiKKg7Vkp';
-	const cohere = new CohereClientV2({ token: COHERE_TOKEN });
+	let { data }: PageProps = $props();
+	const cohere = new CohereClientV2({ token: data.token });
 
-	let quest = { title: '', description: '' };
+	let quest = $state({ title: '', description: '' });
 	let messages: ChatMessageV2[] = [
 		{
 			role: 'system',
@@ -15,7 +16,7 @@
 		{
 			role: 'user',
 			content:
-				'Hola, quiero que me crees una mision diaria para mejorar mis estadisticas de igiene personal.'
+				'Hola, quiero que me crees una quest diaria aleatoria para mejorar mis estadisticas personales.'
 		}
 	];
 
@@ -44,8 +45,6 @@
 </script>
 
 <section class="relative flex w-full max-w-6xl flex-1 flex-col items-center p-6">
-	{#if quest}
-		<p class="w-full text-xl font-bold">{quest.title}</p>
-		<p class="w-full">{quest.description}</p>
-	{/if}
+	<p class="w-full text-xl font-bold">{quest.title}</p>
+	<p class="w-full">{quest.description}</p>
 </section>
