@@ -1,67 +1,51 @@
 <script lang="ts">
-	import type {
-		InitProgressCallback,
-		ResponseFormat,
-		ChatCompletionRequest
-	} from '@mlc-ai/web-llm';
-	import { CreateMLCEngine } from '@mlc-ai/web-llm';
-	import { onMount } from 'svelte';
-	const AI_MODEL = 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+	import { CohereClientV2 } from 'cohere-ai';
+	import type { ChatMessageV2, ChatResponse, ResponseFormatV2 } from 'cohere-ai/api';
 
-	let loading = '';
-	let message = '';
-	let engine: any;
+	const COHERE_TOKEN = 'zkXusf2XxAI8K9SZpbUo1TKu8OrQI25UiKKg7Vkp';
+	const cohere = new CohereClientV2({ token: COHERE_TOKEN });
 
-	async function generate() {
-		message = '';
-
-		const request: ChatCompletionRequest = {
-			stream: true,
-			stream_options: { include_usage: true },
-			messages: [
-				{
-					role: 'system',
-					content:
-						'Eres una IA entrenada para generar quests de RPG para una app que gamifica la vida del usuario.'
-				},
-				{
-					role: 'user',
-					content:
-						'Crea una quest en un par de lineas, maximo 160 caracteres, para un usuario que necesita mejorar su estadistica de constancia'
-				}
-			] /* ,
-			n: 2,
-			response_format: { type: 'json_object' } as ResponseFormat */
-		};
-
-		const chunks = await engine.chat.completions.create(request);
-
-		for await (const chunk of chunks) {
-			const piece = chunk.choices[0]?.delta?.content || '';
-			message += piece;
+	let quest = { title: '', description: '' };
+	let messages: ChatMessageV2[] = [
+		{
+			role: 'system',
+			content:
+				'Eres una IA entrenada para generar quests para una app que simula el juego de RPG pero en la vida real. Tu mision es generar misiones diarias para mejorar estadisticas como fuerza, salud, inteligencia, etc. Las quests tienen que poder realizarse por cualquier tipo de persona. Generas respuestas de un par de lineas, aproximadamente 100 caracteres.'
+		},
+		{
+			role: 'user',
+			content:
+				'Hola, quiero que me crees una mision diaria para mejorar mis estadisticas de igiene personal.'
 		}
-	}
+	];
 
-	onMount(async () => {
-		const initProgressCallback: InitProgressCallback = (initProgress) => {
-			loading = initProgress.text;
-		};
+	const responseFormat: ResponseFormatV2 = {
+		type: 'json_object',
+		jsonSchema: {
+			type: 'object',
+			properties: {
+				title: { type: 'string', description: 'El titulo de la quest' },
+				description: { type: 'string', description: 'Descripcion de la quest' }
+			},
+			required: ['title', 'description']
+		}
+	};
 
-		engine = await CreateMLCEngine(AI_MODEL, { initProgressCallback });
-	});
+	(async () => {
+		const response: ChatResponse = await cohere.chat({
+			model: 'command-r7b-12-2024',
+			messages,
+			responseFormat
+		});
+
+		const raw = response.message.content?.[0].text!;
+		quest = JSON.parse(raw);
+	})();
 </script>
 
 <section class="relative flex w-full max-w-6xl flex-1 flex-col items-center p-6">
-	<p class="w-full">{message}</p>
-
-	{#if engine}
-		<button
-			class="absolute right-6 bottom-6 left-6 rounded-md bg-blue-500 p-2 text-center text-neutral-100"
-			on:click={generate}
-		>
-			Generar
-		</button>
-	{:else}
-		<p class="absolute right-6 bottom-6 left-6 text-xs text-neutral-500">{loading}</p>
+	{#if quest}
+		<p class="w-full text-xl font-bold">{quest.title}</p>
+		<p class="w-full">{quest.description}</p>
 	{/if}
 </section>
